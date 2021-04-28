@@ -136,7 +136,7 @@ def deltacomp(n, eps0, eps, deltaupper, step, upperbound = True):
 
 
 # #if UL=1 then produces upper bound, else produces lower bound.
-def empiricalanalysis(n, epsorig, delta, num_iterations, step, upperbound):
+def numericalanalysis(n, epsorig, delta, num_iterations, step, upperbound):
     '''
     Empirically computes the privacy guarantee of achieved by shuffling n eps0-DP local reports.
     num_iterations = number of steps of binary search, the larger this is, the more accurate the result
@@ -146,7 +146,7 @@ def empiricalanalysis(n, epsorig, delta, num_iterations, step, upperbound):
     if epsorig < math.log(n / (16 * math.log(4 / delta))):
         # checks if this is a valid parameter regime for the theoretical analysis.
         # If yes, uses the theoretical upper bound as a starting point for binary search
-        epsupper = theoryanalysis(n, epsorig, delta)
+        epsupper = closedformanalysis(n, epsorig, delta)
     else:
         epsupper = epsorig
 
@@ -157,7 +157,7 @@ def empiricalanalysis(n, epsorig, delta, num_iterations, step, upperbound):
 
 
 # ===========/THEORY/========
-def theoryanalysis(n, epsorig, delta):
+def closedformanalysis(n, epsorig, delta):
     '''
     Theoretical computation the privacy guarantee of achieved by shuffling n eps0-DP local reports.
     '''

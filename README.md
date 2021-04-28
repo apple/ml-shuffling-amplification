@@ -16,4 +16,4 @@ example.py contains an example showing how to compute amplification bounds with 
 
 Shuffling 100000 4 -DP local randomizers results is (eps,  1e-06 )-DP in the shuffle model for eps between 0.1675385583317841 and 0.172790550755978
 
-According to our theoretical analysis, shuffling 100000 4 -DP local randomizers results is (eps,  1e-06 )-DP in the shuffle model where eps is at most  0.5378040242374512
+According to our closed form analysis, shuffling 100000 4 -DP local randomizers results is (eps,  1e-06 )-DP in the shuffle model where eps is at most  0.5378040242374512
