@@ -3,7 +3,7 @@
 
 import scipy.stats as stats
 import math
-
+import numpy as np
 
 # This document contains 4 computations: 2 empirical and 2 theoretical.
 # 1. Empirical analysis
@@ -69,68 +69,64 @@ def deltacomp(n, eps0, eps, deltaupper, step, upperbound = True):
     # This will keep track of what probability mass we have covered so far.
 
     p = math.exp(-eps0)
-
-    if n % 2 == 0:
-        c = n / 2
-        probabilityofc = stats.binom.pmf(c, n - 1, p)
-
-        # This series of if statements increase efficiency.
-        # If deltap or deltaq exceed deltaupper, the final delta will also exceed deltaupper, so we exit now and return deltaupper.
-        if max(deltap, deltaq) > deltaupper:
-            return deltaupper
-        # If either of the following inequalities hold then the final delta will not
-        # exceed max(deltap+1-Cprob, deltaq+1-Cprob)<2max(deltap, deltaq), so we don't lose much by returning that.
-        if 1 - probused < deltap and 1 - probused < deltaq:
-            return max(deltap + 1 - probused, deltaq + 1 - probused)
-        else:
-            deltap = deltap + probabilityofc * onestep(c, eps, eps0, True)
-            deltaq = deltaq + probabilityofc * onestep(c, eps, eps0, False)
-
-        probused = stats.binom.pmf(n / 2, n - 1, p)
+    expectation = (n-1)*p
 
     # Now, we are going to iterate over the n/2, n/2-step, n/2+step, n/2-2*steps, ...
-    for B in range(1, int(n / 2) + 1 + n % 2, step):
+    for B in range(1, int(np.ceil(n/step)), 1):
         for s in range(2):
             if s == 0:
-                upperc = max(round(n / 2 + ((-1) ** s) * (B - (n % 2) * 0.1)),
-                          round(n / 2 + ((-1) ** s) * (B + step - (n % 2) * 0.1))) - 1  # This is stepping up by "step".
-                lowerc = upperc - step + 1
+                if B==1:
+                    upperc = int(np.ceil(expectation+B*step))  # This is stepping up by "step".
+                    lowerc = upperc - step
+                else:
+                    upperc = int(np.ceil(expectation + B * step))  # This is stepping up by "step".
+                    lowerc = upperc - step + 1
+                if lowerc>n-1:
+                    inscope = False
+                else:
+                    inscope = True
+                    upperc = min(upperc, n-1)
             if s == 1:
-                upperc = max(round(n / 2 + ((-1) ** s) * (B - (n % 2) * 0.1)),
-                          round(n / 2 + ((-1) ** s) * (B + step - (n % 2) * 0.1)))
-                lowerc = upperc - step + 1
+                lowerc = int(np.ceil(expectation-B*step))
+                upperc = lowerc + step - 1
+                if upperc<0:
+                    inscope = False
+                else:
+                    inscope = True
+                    lowerc = max(0, lowerc)
 
-            cdfinterval = stats.binom.cdf(upperc, n - 1, p) - stats.binom.cdf(lowerc, n - 1, p) + stats.binom.pmf(lowerc, n - 1, p)
+            if inscope == True:
+                cdfinterval = stats.binom.cdf(upperc, n - 1, p) - stats.binom.cdf(lowerc, n - 1, p) + stats.binom.pmf(lowerc, n - 1, p)
             # This is the probability mass in the interval (in Bin(n-1, p))
 
-            if max(deltap, deltaq) > deltaupper:
-                return deltaupper
+                if max(deltap, deltaq) > deltaupper:
+                    return deltaupper
 
-            if 1 - probused < deltap and 1 - probused < deltaq:
-                if upperbound == True:
-                    return max(deltap + 1 - probused, deltaq + 1 - probused)
+                if 1 - probused < deltap and 1 - probused < deltaq:
+                    if upperbound == True:
+                        return max(deltap + 1 - probused, deltaq + 1 - probused)
+                    else:
+                        return max(deltap, deltaq)
+
                 else:
-                    return max(deltap, deltaq)
+                    deltap_upperc = onestep(upperc, eps, eps0, True)
+                    deltap_lowerc = onestep(lowerc, eps, eps0, True)
+                    deltaq_upperc = onestep(upperc, eps, eps0, False)
+                    deltaq_lowerc = onestep(lowerc, eps, eps0, False)
 
-            else:
-                deltap_upperc = onestep(upperc, eps, eps0, True)
-                deltap_lowerc = onestep(lowerc, eps, eps0, True)
-                deltaq_upperc = onestep(upperc, eps, eps0, False)
-                deltaq_lowerc = onestep(lowerc, eps, eps0, False)
+                    if upperbound == True:
+                        # compute the maximum contribution to delta in the segment.
+                        # The max occurs at the end points of the interval due to monotonicity
+                        deltapadd = max(deltap_upperc, deltap_lowerc)
+                        deltaqadd = max(deltaq_upperc, deltaq_upperc)
+                    else:
+                        deltapadd = min(deltap_upperc, deltap_lowerc)
+                        deltaqadd = min(deltaq_upperc, deltaq_lowerc)
 
-                if upperbound == True:
-                    # compute the maximum contribution to delta in the segment.
-                    # The max occurs at the end points of the interval due to monotonicity
-                    deltapadd = max(deltap_upperc, deltap_lowerc)
-                    deltaqadd = max(deltaq_upperc, deltaq_upperc)
-                else:
-                    deltapadd = min(deltap_upperc, deltap_lowerc)
-                    deltaqadd = min(deltaq_upperc, deltaq_lowerc)
+                    deltap = deltap + cdfinterval * deltapadd
+                    deltaq = deltaq + cdfinterval * deltaqadd
 
-                deltap = deltap + cdfinterval * deltapadd
-                deltaq = deltaq + cdfinterval * deltaqadd
-
-            probused = probused + cdfinterval  # updates the mass of C covered so far
+                probused = probused + cdfinterval  # updates the mass of C covered so far
 
     return max(deltap, deltaq)
 
